@@ -1,0 +1,8 @@
+.idea
+__pycache__/
+.env
+venv
+
+models/all-MiniLM-L6-v2
+
+cloned_repo
