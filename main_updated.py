@@ -16,6 +16,9 @@ from clone import clone_repo
 from file_contents import extract_files_to_csv
 from issues import extract_issues
 
+# Add summarizer import (new)
+from repo_summarizer import summarize_repository
+
 # Gemini RAG model helpers (keep names distinct)
 from models.gemini_models_rag import (
     load_env_and_configure as load_gemini_env,
@@ -149,7 +152,7 @@ def load_issue_by_id(csv_path: str, issue_id: int) -> dict | None:
     return record
 
 
-# API: process repo (clone, extract, index)
+# API: process repo (clone, extract, index, summarize)
 @app.post("/process-repo")
 async def process_repo(request: RepoRequest):
     print(f"🚀 Processing repo with {request.model} model: {request.url}")
@@ -192,6 +195,17 @@ async def process_repo(request: RepoRequest):
         except Exception as e_index:
             print(f"⚠️ Warning: failed to build Groq index: {e_index}")
 
+        # NEW: Generate repository summary (robust handling)
+        print("📖 Generating repository summary...")
+        summary = ""
+        try:
+            # summarize_repository accepts a 'model' argument in your original implementation
+            summary = summarize_repository(model=request.model)
+            print("✅ Repository summary generated.")
+        except Exception as e_summary:
+            print(f"⚠️ Warning: failed to generate repository summary: {e_summary}")
+            summary = "Summary generation failed. Please check API keys and repo contents."
+
         print("✅ Processing complete.")
         if not os.path.exists(ISSUES_CSV):
             raise FileNotFoundError(f"Issues CSV not created at {ISSUES_CSV}")
@@ -210,7 +224,11 @@ async def process_repo(request: RepoRequest):
             )
 
         issues_list = issues_df_subset.to_dict(orient="records")
-        safe_payload = jsonable_encoder({"issues": issues_list, "model": request.model})
+        safe_payload = jsonable_encoder({
+            "issues": issues_list,
+            "summary": summary,
+            "model": request.model
+        })
         return JSONResponse(content=safe_payload)
 
     except Exception as e:
