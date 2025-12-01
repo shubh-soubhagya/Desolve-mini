@@ -8,6 +8,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
 import google.generativeai as genai
 import time
 
@@ -39,6 +40,8 @@ from models.groq_model_using_chunks import (
     count_tokens as count_tokens_groq,
 )
 
+
+
 # CONFIGURATION
 TEMP_DATA_DIR = "data"
 FILES_CSV = os.path.join(TEMP_DATA_DIR, "repo_files_data.csv")
@@ -64,6 +67,15 @@ except Exception as e:
     print(f"⚠️ Groq API key not configured: {e}")
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 # Global state
 gemini_model = genai.GenerativeModel(GEMINI_MODEL_NAME)
